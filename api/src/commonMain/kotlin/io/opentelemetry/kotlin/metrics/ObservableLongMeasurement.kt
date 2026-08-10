@@ -4,7 +4,6 @@ import io.opentelemetry.kotlin.ExperimentalApi
 import io.opentelemetry.kotlin.ThreadSafe
 import io.opentelemetry.kotlin.attributes.AttributesMutator
 
-
 @ExperimentalApi
 @ThreadSafe
 public interface ObservableLongMeasurement : ObservableMeasurement {
