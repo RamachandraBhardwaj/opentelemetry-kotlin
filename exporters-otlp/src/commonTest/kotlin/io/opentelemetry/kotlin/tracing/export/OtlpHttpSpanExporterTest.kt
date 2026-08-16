@@ -13,27 +13,27 @@ import io.ktor.utils.io.ByteReadChannel
 import io.opentelemetry.kotlin.Clock
 import io.opentelemetry.kotlin.clock.FakeClock
 import io.opentelemetry.kotlin.error.NoopSdkErrorHandler
+import io.opentelemetry.kotlin.export.HttpClientRegistry
 import io.opentelemetry.kotlin.export.OperationResultCode
 import io.opentelemetry.kotlin.export.OtlpClient
 import io.opentelemetry.kotlin.export.createDefaultHttpClient
+import io.opentelemetry.kotlin.export.createHttpEngine
 import io.opentelemetry.kotlin.init.TraceExportConfigDsl
 import io.opentelemetry.kotlin.tracing.data.FakeSpanData
 import io.opentelemetry.kotlin.tracing.data.SpanData
-import io.opentelemetry.kotlin.export.createHttpEngine
-import io.opentelemetry.kotlin.export.HttpClientRegistry
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 internal class OtlpHttpSpanExporterTest {
 
@@ -135,16 +135,16 @@ internal class OtlpHttpSpanExporterTest {
     }
 
     @Test
-    fun testHttpClientRegistryIsReused(){
+    fun testHttpClientRegistryIsReused() {
         val engine = createHttpEngine()
         val client1 = HttpClientRegistry.getOrCreate(
             engine = engine,
-            requestTimeoutMs = 30_000
+            requestTimeoutMs = 30_000,
         )
 
         val client2 = HttpClientRegistry.getOrCreate(
             engine = engine,
-            requestTimeoutMs = 30_000
+            requestTimeoutMs = 30_000,
         )
 
         assertSame(client1, client2)

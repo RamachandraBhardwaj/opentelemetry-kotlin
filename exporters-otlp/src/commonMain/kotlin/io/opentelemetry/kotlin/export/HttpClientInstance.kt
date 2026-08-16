@@ -8,18 +8,19 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.util.collections.ConcurrentMap
 
 internal data class HttpClientKey(
-    val engine: HttpClientEngine, val timeoutMs: Long
+    val engine: HttpClientEngine,
+    val timeoutMs: Long,
 )
 
 internal object HttpClientRegistry {
-    private val clients = ConcurrentMap<HttpClientKey, HttpClient>();
+    private val clients = ConcurrentMap<HttpClientKey, HttpClient>()
 
     internal fun clear() {
         clients.clear()
     }
 
     fun getOrCreate(engine: HttpClientEngine, requestTimeoutMs: Long): HttpClient {
-        val key = HttpClientKey(engine, requestTimeoutMs);
+        val key = HttpClientKey(engine, requestTimeoutMs)
         return clients.computeIfAbsent(key) {
             createDefaultHttpClient(requestTimeoutMs, engine)
         }
@@ -27,7 +28,8 @@ internal object HttpClientRegistry {
 }
 
 internal fun createDefaultHttpClient(
-    requestTimeoutMs: Long, engine: HttpClientEngine = createHttpEngine()
+    requestTimeoutMs: Long,
+    engine: HttpClientEngine = createHttpEngine(),
 ): HttpClient = HttpClient(engine) {
     install(HttpTimeout) {
         requestTimeoutMillis = requestTimeoutMs
