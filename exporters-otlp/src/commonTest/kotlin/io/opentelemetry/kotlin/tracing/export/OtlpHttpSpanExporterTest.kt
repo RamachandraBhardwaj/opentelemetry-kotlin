@@ -19,14 +19,21 @@ import io.opentelemetry.kotlin.export.createDefaultHttpClient
 import io.opentelemetry.kotlin.init.TraceExportConfigDsl
 import io.opentelemetry.kotlin.tracing.data.FakeSpanData
 import io.opentelemetry.kotlin.tracing.data.SpanData
+import io.opentelemetry.kotlin.export.createHttpEngine
+import io.opentelemetry.kotlin.export.HttpClientRegistry
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.test.assertSame
 
 internal class OtlpHttpSpanExporterTest {
 
@@ -48,7 +55,7 @@ internal class OtlpHttpSpanExporterTest {
                 status = mockResponseStatus
             )
         }
-        val httpClient = createDefaultHttpClient(engine = server)
+        val httpClient = createDefaultHttpClient(engine = server, requestTimeoutMs = 30_000)
         client = OtlpClient(baseUrl, httpClient = httpClient)
         exporter = OtlpHttpSpanExporter(
             client,
@@ -125,6 +132,42 @@ internal class OtlpHttpSpanExporterTest {
         }
         val headers = customServer.requestHistory.single().headers.toMap().mapValues { it.value.joinToString() }
         assertEquals("Bearer test-token", headers["Authorization"])
+    }
+
+    @Test
+    fun testHttpClientRegistryIsReused(){
+        val engine = createHttpEngine()
+        val client1 = HttpClientRegistry.getOrCreate(
+            engine = engine,
+            requestTimeoutMs = 30_000
+        )
+
+        val client2 = HttpClientRegistry.getOrCreate(
+            engine = engine,
+            requestTimeoutMs = 30_000
+        )
+
+        assertSame(client1, client2)
+        HttpClientRegistry.clear()
+    }
+
+    @Test
+    fun testHttpClientRegistryConcurrency() = runTest {
+        val engine = createHttpEngine()
+
+        val clients = coroutineScope {
+            (1..50).map {
+                async(Dispatchers.Default) {
+                    HttpClientRegistry.getOrCreate(
+                        engine = engine,
+                        requestTimeoutMs = 30_000
+                    )
+                }
+            }.awaitAll()
+        }
+
+        assertTrue(clients.all { it === clients.first() })
+        HttpClientRegistry.clear()
     }
 
     private suspend fun waitForExportedTelemetry(
