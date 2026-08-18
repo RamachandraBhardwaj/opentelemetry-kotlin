@@ -5,6 +5,9 @@ import io.opentelemetry.kotlin.InstrumentationScopeInfo
 import io.opentelemetry.kotlin.attributes.AttributesMutator
 import io.opentelemetry.kotlin.attributes.setExceptionAttributes
 import io.opentelemetry.kotlin.context.Context
+import io.opentelemetry.kotlin.error.SdkErrorHandler
+import io.opentelemetry.kotlin.error.guard
+import io.opentelemetry.kotlin.error.guardOrDefault
 import io.opentelemetry.kotlin.export.ShutdownState
 import io.opentelemetry.kotlin.factory.ContextFactory
 import io.opentelemetry.kotlin.factory.SpanContextFactory
@@ -25,6 +28,7 @@ internal class LoggerImpl(
     private val logLimitConfig: LogLimitConfig,
     private val shutdownState: ShutdownState,
     private val loggerConfig: LoggerConfig = LoggerConfigImpl(),
+    private val sdkErrorHandler: SdkErrorHandler,
 ) : Logger {
 
     private val contextFactory = contextFactory
@@ -36,13 +40,17 @@ internal class LoggerImpl(
         severityNumber: SeverityNumber?,
         eventName: String?,
     ): Boolean =
-        if (shutdownState.isShutdown || processor == null) {
-            false
-        } else {
-            val ctx = context ?: contextFactory.implicit()
-            when {
-                !allowedByConfig(severityNumber, spanContextFrom(ctx)) -> false
-                else -> processor.enabled(ctx, key, severityNumber, eventName)
+        sdkErrorHandler.guardOrDefault(false, "Logger.enabled failed") {
+            if (shutdownState.isShutdown || processor == null) {
+                false
+            } else {
+                val ctx = context ?: contextFactory.implicit()
+                when {
+                    !allowedByConfig(severityNumber, spanContextFrom(ctx)) -> false
+                    else -> sdkErrorHandler.guardOrDefault(true) {
+                        processor.enabled(ctx, key, severityNumber, eventName)
+                    }
+                }
             }
         }
 
@@ -81,34 +89,38 @@ internal class LoggerImpl(
         exception: Throwable?,
         attributes: (AttributesMutator.() -> Unit)?
     ) {
-        shutdownState.execute {
-            val ctx = context ?: contextFactory.implicit()
-            val spanContext = spanContextFrom(ctx)
+        sdkErrorHandler.guard("Logger.emit failed") {
+            shutdownState.execute {
+                val ctx = context ?: contextFactory.implicit()
+                val spanContext = spanContextFrom(ctx)
 
-            if (!allowedByConfig(severityNumber, spanContext)) {
-                return@execute
-            }
+                if (!allowedByConfig(severityNumber, spanContext)) {
+                    return@execute
+                }
 
-            val now = clock.now()
-            val log = LogRecordModel(
-                resource = resource,
-                instrumentationScopeInfo = key,
-                timestamp = timestamp ?: now,
-                observedTimestamp = observedTimestamp ?: now,
-                body = body,
-                severityText = severityText,
-                severityNumber = severityNumber ?: SeverityNumber.UNKNOWN,
-                spanContext = spanContext,
-                logLimitConfig = logLimitConfig,
-                eventName = eventName,
-            )
-            if (exception != null) {
-                log.setExceptionAttributes(exception)
+                val now = clock.now()
+                val log = LogRecordModel(
+                    resource = resource,
+                    instrumentationScopeInfo = key,
+                    timestamp = timestamp ?: now,
+                    observedTimestamp = observedTimestamp ?: now,
+                    body = body,
+                    severityText = severityText,
+                    severityNumber = severityNumber ?: SeverityNumber.UNKNOWN,
+                    spanContext = spanContext,
+                    logLimitConfig = logLimitConfig,
+                    eventName = eventName,
+                )
+                if (exception != null) {
+                    log.setExceptionAttributes(exception)
+                }
+                if (attributes != null) {
+                    attributes(log)
+                }
+                sdkErrorHandler.guard {
+                    processor?.onEmit(ReadWriteLogRecordImpl(log), ctx)
+                }
             }
-            if (attributes != null) {
-                attributes(log)
-            }
-            processor?.onEmit(ReadWriteLogRecordImpl(log), ctx)
         }
     }
 

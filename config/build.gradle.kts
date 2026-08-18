@@ -11,17 +11,15 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(project(":sdk-api"))
-                api(project(":config-schema"))
-                implementation(libs.yamlkt)
-                implementation(libs.okio)
+                api(project(":behavior"))
+                api(project(":config-dsl"))
+                api(project(":config-envar"))
+                api(project(":config-yaml"))
             }
         }
         val commonTest by getting {
             dependencies {
-                implementation(project(":test-fakes"))
                 implementation(libs.kotlin.test)
-                implementation(libs.okio.fakefilesystem)
             }
         }
         val jvmTest by getting {

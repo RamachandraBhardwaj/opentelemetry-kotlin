@@ -2,6 +2,7 @@ package io.opentelemetry.kotlin.tracing
 
 import io.opentelemetry.kotlin.InstrumentationScopeInfoImpl
 import io.opentelemetry.kotlin.clock.FakeClock
+import io.opentelemetry.kotlin.error.NoopSdkErrorHandler
 import io.opentelemetry.kotlin.export.MutableShutdownState
 import io.opentelemetry.kotlin.factory.ContextFactoryImpl
 import io.opentelemetry.kotlin.factory.IdGenerator
@@ -71,6 +72,7 @@ internal class TracerRandomTraceIdFlagTest {
             traceStateFactory = traceStateFactory,
             spanContextFactory = spanContextFactory,
             spanFactory = spanFactory,
+            sdkErrorHandler = NoopSdkErrorHandler,
         )
         val span = buildTracer(idGenerator).startSpan("test")
         val carrier = mutableMapOf<String, String>()
@@ -110,7 +112,7 @@ internal class TracerRandomTraceIdFlagTest {
 
     private fun buildTracer(
         idGenerator: IdGenerator,
-        sampler: Sampler = AlwaysOnSampler(),
+        sampler: Sampler = AlwaysOnSampler,
     ): TracerImpl {
         val spanContextFactory = SpanContextFactoryImpl(idGenerator, traceFlagsFactory, traceStateFactory)
         return TracerImpl(
@@ -125,6 +127,7 @@ internal class TracerRandomTraceIdFlagTest {
             idGenerator = idGenerator,
             shutdownState = MutableShutdownState(),
             sampler = sampler,
+            sdkErrorHandler = NoopSdkErrorHandler,
         )
     }
 
