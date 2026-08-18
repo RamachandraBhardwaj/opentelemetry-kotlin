@@ -55,7 +55,7 @@ internal class OtlpHttpSpanExporterTest {
                 status = mockResponseStatus
             )
         }
-        val httpClient = createDefaultHttpClient(engine = server,requestTimeoutMs = 10_000)
+        val httpClient = createDefaultHttpClient(engine = server, requestTimeoutMs = 10_000)
         client = OtlpClient(baseUrl, httpClient = httpClient, sdkErrorHandler = NoopSdkErrorHandler)
         exporter = OtlpHttpSpanExporter(
             client,

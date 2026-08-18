@@ -32,7 +32,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 internal class OtlpClient(
     private val baseUrl: String,
-    private val httpClient: HttpClient = defaultHttpClient,
+    private val httpClient: HttpClient,
     private val sdkErrorHandler: SdkErrorHandler,
 ) {
 

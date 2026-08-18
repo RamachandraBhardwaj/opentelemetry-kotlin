@@ -48,7 +48,7 @@ internal class OtlpHttpLogRecordExporterTest {
                 status = mockResponseStatus
             )
         }
-        val httpClient = createDefaultHttpClient(engine = server,requestTimeoutMs = 10_000)
+        val httpClient = createDefaultHttpClient(engine = server, requestTimeoutMs = 10_000)
         client = OtlpClient(baseUrl, httpClient = httpClient, sdkErrorHandler = NoopSdkErrorHandler)
         exporter = OtlpHttpLogRecordExporter(
             client,
