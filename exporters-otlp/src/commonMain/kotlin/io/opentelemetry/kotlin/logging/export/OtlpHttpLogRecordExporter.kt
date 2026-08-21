@@ -1,6 +1,5 @@
 package io.opentelemetry.kotlin.logging.export
 
-
 import io.opentelemetry.kotlin.error.SdkErrorHandler
 import io.opentelemetry.kotlin.export.OperationResultCode
 import io.opentelemetry.kotlin.export.OtlpClient
@@ -25,7 +24,8 @@ internal class OtlpHttpLogRecordExporter(
         },
         shutdownAction = {
             otlpClient.close()
-        })
+        }
+    )
 
     override suspend fun export(telemetry: List<LogRecordData>): OperationResultCode {
         return exporter.export(telemetry)

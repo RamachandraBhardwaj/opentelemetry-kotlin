@@ -142,7 +142,7 @@ internal class TelemetryExporterTest {
         var attempts = 0
         val exporter = TelemetryExporter<String>(
             initialDelayMs = 100,
-            maxAttemptIntervalMs = 1000,
+            maxAttemptIntervalMs = 5000,
             maxAttempts = 3,
             coroutineContext = StandardTestDispatcher(testScheduler),
             random = Random(0),
